@@ -1,0 +1,23 @@
+ XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda python tof_nerf.py --config config/config_fast.txt \
+    --dataset_type mitsuba \
+    --scan bedroom_static \
+    --datadir $1 \
+    --expname mitsuba_bedroom_static_$2_static_fast \
+    --depth_range 16 --scene_scale 1.0 --falloff_range 16.0 \
+    --min_depth_fac 0.05 --max_depth_fac 0.5 \
+    --num_views 16 \
+    --num_frames 16 \
+    --train_views $3 \
+    --tof_image_width 640 --tof_image_height 360 \
+    --tof_scale_factor 0.5 \
+    --color_image_width 640 --color_image_height 360 \
+    --color_scale_factor 0.5 \
+    --lrate 1e-3 --lrate_decay 500  \
+    --i_img 5000 \
+    --i_weights 50000 \
+    --i_video 50001 \
+    --train_both \
+    --view_step 1 --view_start 0 --total_num_views 16 \
+    --use_relative_poses --colocated_pose \
+    --tof_weight 0.0 --tof_weight_decay 0.1 --tof_weight_decay_steps 500 \
+    --radiance_weight 2.0 --no_radiance_iters 0 \
