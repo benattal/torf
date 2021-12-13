@@ -1,4 +1,4 @@
-# NeRF: Neural Radiance Fields
+# TöRF: Time-of-Flight Radiance Fields
 
 ## TL;DR quickstart
 
