@@ -1,0 +1,67 @@
+expname = real
+basedir = ./logs
+datadir = ./data
+random_seed = 1
+autoholdout = 8
+
+N_iters = 2000000
+N_rand = 1024
+
+netchunk = 32768
+chunk = 32768
+
+N_samples = 128
+N_importance = 0
+
+use_viewdirs = True
+raw_noise_std = 1e0
+
+depth_range = 10.0
+falloff_range = 10.0
+scene_scale = 1.0
+min_depth_fac = 0.05
+max_depth_fac = 0.55
+
+lrate = 1e-3
+lrate_decay = 250
+lrate_calib = 1e-3
+lrate_decay_calib = 100 
+lrate_calib_fac = 0.1
+
+i_img = 1000
+i_save = 20000
+i_video = 20000
+i_testset = 1000000
+
+optimize_poses = True
+pose_reg_weight = 0.0
+use_relative_poses = True
+optimize_relative_pose = True
+identity_pose_initialization = True
+
+static_scene_iters = 5000
+model_reset_iters = 5000
+calibration_pretraining = True
+reset_static_model = True
+
+sparsity_weight = 0.0
+sparsity_weight_decay = 0.1
+sparsity_weight_decay_steps = 500
+
+tof_weight = 8.0
+tof_weight_decay = 0.1
+tof_weight_decay_steps = 125
+
+color_weight = 2.0
+no_color_iters = 0
+
+dynamic = True
+latent_code_size = 256
+
+no_ndc = True
+square_transmittance = True
+use_falloff = True
+use_phasor = False
+no_phase_iters = 100000000
+
+

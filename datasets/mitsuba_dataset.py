@@ -8,7 +8,8 @@ from datasets.tof_dataset import *
 from utils.utils import rgb2gray, resize_all_images
 from utils.projection_utils import *
 
-class MitsubaDataset(TOFDataset):
+
+class MitsubaDataset(ToFDataset):
     def __init__(
         self,
         args,

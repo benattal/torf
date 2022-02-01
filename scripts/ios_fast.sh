@@ -1,33 +1,18 @@
-   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda  python tof_nerf.py --config config/config_fast.txt \
+   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda  python torf.py --config config/config_ios.txt \
     --dataset_type ios \
-    --scan $2 \
-    --datadir $3 \
-    --expname ios_$2_$1_dynamic_fast \
-    --depth_range 8.0 --scene_scale 1.0 --falloff_range 4.0 \
-    --min_depth_fac 0.05 --max_depth_fac 0.5 \
-    --num_views $1 \
-    --num_frames $1 \
+    --scan $1 \
+    --expname ios_$1_$2_dynamic_fast \
+    --num_views $2 \
+    --num_frames $2 \
     --tof_image_width 384 --tof_image_height 288 \
     --tof_scale_factor 1 \
     --color_image_width 384 --color_image_height 288 \
     --color_scale_factor 1 \
-    --lrate 1e-3 --lrate_decay 250  \
-    --lrate_calib 1e-3 --lrate_decay_calib 100 --lrate_calib_fac 0.1 \
-    --i_img 5000 \
-    --i_save 50000 \
-    --i_video 50001 \
-    --train_both \
+    --i_img 1000 \
+    --i_save 20000 \
+    --i_video 20000 \
     --view_step 1 --view_start 0 --total_num_views 40 \
-    --optimize_poses --pose_reg_weight 0.0 --use_relative_poses --colocated_pose \
-    --identity_pose_initialization \
-    --static_scene_iters 5000 --calibration_pretraining \
-    --model_reset_iters 5000 --reset_static_model \
-    --dynamic --empty_weight 0.0 --empty_weight_decay 0.1 --empty_weight_decay_steps 500 \
-    --latent_code_size 256 \
-    --tof_weight 8.0 --tof_weight_decay 0.5 --tof_weight_decay_steps 125 \
-    --radiance_weight 2.0 --no_radiance_iters 0 \
-    --extrinsics_file data/render_poses/spiral_ios.npy \
-    --reverse_extrinsics \
-    --extrinsics_scale 1.1 \
-    #--double_transmittance \
+    --render_extrinsics_file data/render_poses/spiral_ios.npy \
+    --reverse_render_extrinsics \
+    --render_extrinsics_scale 1.1
 

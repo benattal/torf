@@ -1,0 +1,62 @@
+expname = dino
+basedir = ./logs
+datadir = ./data
+random_seed = 1
+autoholdout = 8
+
+N_iters = 2000000
+N_rand = 1024
+
+netchunk = 32768
+chunk = 32768
+
+N_samples = 128
+N_importance = 0
+
+use_viewdirs = True
+raw_noise_std = 1e0
+
+depth_range = 16.0
+falloff_range = 16.0
+scene_scale = 1.0
+min_depth_fac = 0.05
+max_depth_fac = 0.55
+
+lrate = 1e-3
+lrate_decay = 250
+lrate_calib = 1e-3
+lrate_decay_calib = 100 
+lrate_calib_fac = 0.1
+
+i_img = 1000
+i_save = 20000
+i_video = 20000
+i_testset = 1000000
+
+train_both = True
+collocated_pose = True
+
+optimize_poses = False
+pose_reg_weight = 0.0
+use_relative_poses = True
+optimize_relative_pose = False
+identity_pose_initialization = False
+
+tof_weight = 8.0
+tof_weight_decay = 0.1
+tof_weight_decay_steps = 125
+
+color_weight = 2.0
+no_color_iters = 0
+
+dynamic = False
+no_ndc = True
+square_transmittance = True
+use_falloff = True
+use_phasor = False
+no_phase_iters = 100000000
+
+
+
+
+

@@ -35,12 +35,12 @@ def tof_loss_default(target_tof, outputs, tof_weight):
     
     return img_loss, img_loss0
 
-def radiance_loss_default(target_radiance, outputs, radiance_weight):
-    img_loss = img2mse(outputs['radiance_map'], target_radiance) * radiance_weight
+def color_loss_default(target_color, outputs, color_weight):
+    img_loss = img2mse(outputs['color_map'], target_color) * color_weight
     img_loss0 = 0.0
 
-    if 'radiance_map0' in outputs:
-        img_loss0 = img2mse(outputs['radiance_map0'], target_radiance) * radiance_weight
+    if 'color_map0' in outputs:
+        img_loss0 = img2mse(outputs['color_map0'], target_color) * color_weight
     
     return img_loss, img_loss0
 

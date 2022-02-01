@@ -2,7 +2,6 @@ import numpy as np
 import os, glob
 import imageio
 import cv2
-import h5py
 import scipy
 import scipy.io
 
@@ -12,58 +11,7 @@ from utils.sampling_utils import *
 
 MAX_ITERS = 100000
 
-def flip_coords_cols_2(poses):
-    return np.concatenate(
-        [
-            poses[:, :, 1:2],
-            poses[:, :, 0:1],
-            -poses[:, :, 2:3],
-            poses[:, :, 3:4]
-        ],
-        axis=2
-        )
-
-def flip_coords_cols_1(poses):
-    return np.concatenate(
-        [
-            poses[:, :, 1:2], 
-            poses[:, :, 0:1], 
-            -poses[:, :, 2:4],
-        ],
-        axis=2
-    )
-
-def flip_coords(poses):
-    return np.concatenate(
-        [
-            poses[:, 1:2],
-            -poses[:, 0:1],
-            poses[:, 2:]
-        ],
-        axis=1
-        )
-
-def unflip_coords_cols(poses):
-    return np.concatenate(
-        [
-            -poses[:, :, 1:2],
-            poses[:, :, 0:1],
-            poses[:, :, 2:]
-        ],
-        axis=2
-        )
-
-def unflip_coords(poses):
-    return np.concatenate(
-        [
-            -poses[:, 1:2],
-            poses[:, 0:1],
-            poses[:, 2:]
-        ],
-        axis=1
-        )
-
-class TOFDataset(object):
+class ToFDataset(object):
     def __init__(
         self,
         args,
@@ -181,7 +129,7 @@ class TOFDataset(object):
             self.dataset['depth_images'].append(depth_im)
 
             ## Anything else (e.g. saving files)
-            self._process_data_hook(args)
+            self._process_data_extra(args)
 
         # Post-process
         self._scale_dataset(args)
@@ -205,8 +153,6 @@ class TOFDataset(object):
                 args
                 )
         self.tof_poses = np.linalg.inv(tE)
-        if args.flip_pose:
-            self.tof_poses = flip_coords(self.tof_poses)
         self.tof_poses, self.tof_tform = recenter_poses(self.tof_poses)
         self.tof_intrinsics = [np.copy(self.tof_intrinsics) for i in range(args.total_num_views)]
 
@@ -216,8 +162,6 @@ class TOFDataset(object):
                 args
                 )
         self.color_poses = np.linalg.inv(cE)
-        if args.flip_pose:
-            self.color_poses = flip_coords(self.color_poses)
         self.color_poses, self.color_tform = recenter_poses(self.color_poses)
         self.color_intrinsics = [np.copy(self.color_intrinsics) for i in range(args.total_num_views)]
 
@@ -227,8 +171,6 @@ class TOFDataset(object):
                 default_exts=tE
                 )
         self.tof_light_poses = np.linalg.inv(tlE)
-        if args.flip_pose:
-            self.tof_light_poses = flip_coords(self.tof_light_poses)
 
         clE = get_extrinsics(
                 os.path.join(args.datadir, f'{args.scan}/cams/color_light_extrinsics.npy'),
@@ -236,8 +178,6 @@ class TOFDataset(object):
                 default_exts=cE
                 )
         self.color_light_poses = np.linalg.inv(clE)
-        if args.flip_pose:
-            self.color_light_poses = flip_coords(self.color_light_poses)
 
         ## Depth range
         depth_range_path = os.path.join(args.datadir, f'{args.scan}/cams/depth_range.npy')
@@ -257,7 +197,7 @@ class TOFDataset(object):
     def _process_depth(self, depth_im):
         return depth_im
 
-    def _process_data_hook(self, args):
+    def _process_data_extra(self, args):
         pass
     
     def _scale_dataset(self, args):
@@ -341,7 +281,6 @@ class TOFDataset(object):
                     ]
             self.i_val = self.i_test
         else:
-            # Test views
             self.i_test = self.dataset['i_test']
 
             if not isinstance(self.i_test, list):
@@ -351,10 +290,8 @@ class TOFDataset(object):
                 print('Auto holdout,', args.autoholdout)
                 self.i_test = np.arange(args.num_views)[::args.autoholdout]
 
-            # Val views
             self.i_val = self.i_test
 
-            # Train views
             self.i_train = [
                 i for i in range(args.view_start, args.view_start + args.num_views * args.view_step, args.view_step)
             ]
@@ -365,6 +302,9 @@ class TOFDataset(object):
                         or (args.num_views == 1)
                 ]
             )
+
+        # Val frame numbers
+        self.val_frames_idx = list(range(len(self.i_val)))
 
     def get_batch(
         self,

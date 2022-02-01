@@ -14,4 +14,5 @@
     --view_step 1 --view_start 0 --total_num_views 121 \
     --val_start 61 --val_end 122 \
     --render_extrinsics_file data/render_poses/spiral_dino.npy \
-    --render_extrinsics_scale 1.1
+    --render_extrinsics_scale 1.1 \
+    --eval_only

@@ -17,7 +17,6 @@ def convert_to_outputs(raw, z_vals, rays_o, rays_d, pts, light_pos, near, far, v
 
     # Non-linearities for time-of-flight
     tof_nl_fn = (lambda x: tf.abs(x)) if args.use_falloff else tf.math.sigmoid
-    tof_nl_fn_basis = (lambda x: x) if args.use_falloff else tf.math.tanh
 
     # Distances
     dists, dists_to_cam, dists_to_light, dists_total = \
@@ -34,9 +33,9 @@ def convert_to_outputs(raw, z_vals, rays_o, rays_d, pts, light_pos, near, far, v
     
     ## Color
 
-    if 'radiance_map' in args.outputs:
-        radiance_map = compute_color(0, raw, weights, args)
-        outputs['radiance_map'] = radiance_map
+    if 'color_map' in args.outputs:
+        color_map = compute_color(0, raw, weights, args)
+        outputs['color_map'] = color_map
 
     ## Time-of-flight
 
@@ -357,7 +356,7 @@ def render_path(
     savedir=None,
     render_factor=0,
     render_kwargs={},
-    all_output_names=['tof_map', 'radiance_map', 'disp_map', 'depth_map', 'tof_map_dynamic', 'radiance_map_dynamic', 'disp_map_dynamic', 'depth_map_dynamic'],
+    all_output_names=['tof_map', 'color_map', 'disp_map', 'depth_map', 'tof_map_dynamic', 'color_map_dynamic', 'disp_map_dynamic', 'depth_map_dynamic'],
     render_freezeframe=False,
     args=None
     ):
@@ -443,33 +442,14 @@ def compute_color(
     args,
     no_over=False
     ):
-    radiance = tf.math.sigmoid(raw[..., start_idx:start_idx+3])
+    color = tf.math.sigmoid(raw[..., start_idx:start_idx+3])
 
-    # Over-composited radiance
+    # Over-composited color
     if not no_over:
-        radiance_map = tf.reduce_sum(
-            weights[..., None] * radiance, axis=-2
+        color_map = tf.reduce_sum(
+            weights[..., None] * color, axis=-2
             )
         
-        return radiance_map
+        return color_map
     else:
-        return radiance
-
-def compute_color_falloff(
-    start_idx,
-    raw,
-    dists_to_light,
-    weights, transmittance, visibility,
-    color_nl_fn,
-    args
-    ):
-    # R-squared falloff
-    factor = get_falloff(dists_to_light, args)
-    radiance = color_nl_fn(raw[..., start_idx:start_idx+3])
-
-    # Over-composited radiance
-    radiance_map = tf.reduce_sum(
-        factor[..., None] * visibility * weights[..., None] * radiance, axis=-2
-        )
-    
-    return radiance_map
+        return color

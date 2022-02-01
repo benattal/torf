@@ -6,7 +6,6 @@ import imageio
 import json
 
 from render import *
-from deferred import *
 from dynamic import *
 
 class Embedder:
@@ -376,7 +375,7 @@ def create_dynamic_model(models, grad_vars, args):
         return raw_dynamic
 
     tof_phase_model = init_render_model(
-        D=args.rendernetdepth_global, W=args.rendernetwidth_global,
+        D=args.phasenetdepth, W=args.phasenetwidth,
         input_ch=input_ch_pix + 1,
         output_ch=1
         )
@@ -390,7 +389,7 @@ def create_dynamic_model(models, grad_vars, args):
         coords_flat = tf.reshape(coords, [-1, coords.shape[-1]])
         coords_flat = embedpix_fn(coords_flat)
 
-        # TOF phase
+        # ToF phase
         tof_flat = tf.reshape(tof, [-1, tof.shape[-1]])
         phase_flat = get_phase(tof_flat[..., 0:1], tof_flat[..., 1:2])
 
@@ -463,12 +462,10 @@ def create_nerf(args):
         'use_variance_weighting': args.use_variance_weighting,
         'use_falloff': args.use_falloff,
         'tof_phase_model': tof_phase_model,
-        'square_wave': args.square_wave,
-        'double_transmittance': args.double_transmittance,
-        'renderfeatures': args.renderfeatures,
+        'square_transmittance': args.square_transmittance,
         'render_rays_fn': render_rays_fn,
         'outputs': [
-            'tof_map', 'radiance_map', 'disp_map', 'acc_map', 'z_std'
+            'tof_map', 'color_map', 'disp_map', 'acc_map', 'z_std'
             ]
     }
 

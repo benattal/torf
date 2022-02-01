@@ -16,7 +16,7 @@ from utils.nerf_utils import *
 from utils.utils import *
 from utils.camera_utils import *
 
-from datasets.tof_dataset import TOFDataset, flip_coords, unflip_coords
+from datasets.tof_dataset import ToFDataset
 from datasets.ios_dataset import IOSDataset
 from datasets.real_dataset import RealDataset
 from datasets.mitsuba_dataset import MitsubaDataset
@@ -102,7 +102,7 @@ class NeRFTrainer(object):
         if self.args.optimize_poses and self.args.use_relative_poses:
             trainable_pose_names = ['tof_poses']
 
-            if not self.args.colocated_pose:
+            if not self.args.collocated_pose:
                 trainable_pose_names += ['relative_pose']
         else:
             trainable_pose_names = ['tof_poses', 'color_poses']
@@ -196,7 +196,7 @@ class NeRFTrainer(object):
             np.save(calib_path, var_to_save)
 
             if 'pose' in calib_path and len(var_to_save.shape) == 2:
-                full_var = unflip_coords(np.array(se3_hat(var_to_save)))
+                full_var = np.array(se3_hat(var_to_save))
                 np.save(calib_path_full, full_var)
 
         print('Saved calibration variables')
@@ -245,13 +245,13 @@ class NeRFTrainer(object):
     def get_training_args(self, i, render_kwargs, args):
         render_kwargs['num_views'] = args.num_views
         render_kwargs['static_scene'] = i < args.static_scene_iters
-        empty_weight = args.empty_weight
+        sparsity_weight = args.sparsity_weight
 
         if render_kwargs['static_scene'] and args.dynamic:
             render_kwargs['network_query_fn'] = (self.all_query_fns[1],)
             render_kwargs['dynamic'] = False
             render_kwargs['render_rays_fn'] = render_rays
-            empty_weight = 0.0
+            sparsity_weight = 0.0
         elif args.dynamic:
             render_kwargs['network_query_fn'] = self.all_query_fns
             render_kwargs['dynamic'] = True
@@ -265,16 +265,16 @@ class NeRFTrainer(object):
             args.use_variance_weighting and (i > self.args.no_variance_iters)
 
         render_kwargs['use_tof_uncertainty'] = \
-            args.use_tof_uncertainty and (i > args.i_aux)
+            args.use_tof_uncertainty
         
         images_to_log = [
-            'radiance', 'tof_cos', 'tof_amp', 'disp'
+            'color', 'tof_cos', 'tof_amp', 'disp'
         ]
 
         # Calculate empty weight
-        if args.empty_weight_decay < 1.0 and args.empty_weight_decay_steps != 0 and not render_kwargs['static_scene']:
+        if args.sparsity_weight_decay < 1.0 and args.sparsity_weight_decay_steps != 0 and not render_kwargs['static_scene']:
             decay_exp = float(i) / ((args.tof_weight_decay_steps * 1000) - args.static_scene_iters)
-            empty_weight = np.power(args.empty_weight_decay, decay_exp) * empty_weight
+            sparsity_weight = np.power(args.sparsity_weight_decay, decay_exp) * sparsity_weight
         
         # Calculate tof weight
         if args.tof_weight_decay < 1.0 and args.tof_weight_decay_steps != 0:
@@ -290,7 +290,7 @@ class NeRFTrainer(object):
         else:
             depth_weight = args.depth_weight
         
-        return tof_weight, args.radiance_weight, depth_weight, empty_weight, images_to_log
+        return tof_weight, args.color_weight, depth_weight, sparsity_weight, images_to_log
 
     def get_test_render_args(self, render_kwargs_train, i, args):
         render_kwargs_test = {
@@ -425,7 +425,7 @@ class NeRFTrainer(object):
 
         if not args.train_both:
             # TOF
-            if (i < args.no_radiance_iters or (i % 2) == 1):
+            if (i < args.no_color_iters or (i % 2) == 1):
                 key = 'tof'
                 batch_outputs = ['tof_images'] + (['depth_images'] if args.use_depth_loss else [])
                 outputs = ['tof_map', 'acc_map']
@@ -434,13 +434,13 @@ class NeRFTrainer(object):
             else:
                 key = 'color'
                 batch_outputs = ['color_images'] + (['depth_images'] if args.use_depth_loss else [])
-                outputs = ['radiance_map', 'acc_map']
+                outputs = ['color_map', 'acc_map']
                 losses = ['color']
         else:
             # Both
             key = 'tof'
             batch_outputs = ['tof_images', 'color_images'] + (['depth_images'] if args.use_depth_loss else [])
-            outputs = ['tof_map', 'radiance_map', 'acc_map'] + (['depth_map'] if args.use_depth_loss else [])
+            outputs = ['tof_map', 'color_map', 'acc_map'] + (['depth_map'] if args.use_depth_loss else [])
             losses = ['tof', 'color'] + (['depth'] if args.use_depth_loss else [])
 
         # Get batch
@@ -475,7 +475,7 @@ class NeRFTrainer(object):
         elif self.args.dataset_type == 'mitsuba':
             dataset = MitsubaDataset(self.args)
         else:
-            dataset = TOFDataset(self.args)
+            dataset = ToFDataset(self.args)
 
         self.dataset = dataset.dataset
         self.dataloader = dataset
@@ -600,7 +600,7 @@ class NeRFTrainer(object):
     
     def setup_losses(self):
         self.img_loss_fns = {
-            'color': radiance_loss_default,
+            'color': color_loss_default,
             'tof': tof_loss_default,
             'depth': depth_loss_default
         }
@@ -612,14 +612,14 @@ class NeRFTrainer(object):
         
     def update_args(self, i):
         # Get training params for current iter
-        tof_weight, radiance_weight, depth_weight, empty_weight, self.images_to_log = \
+        tof_weight, color_weight, depth_weight, sparsity_weight, self.images_to_log = \
             self.get_training_args(i, self.render_kwargs_train, self.args)
 
         self.loss_weights = {
-            'color': radiance_weight,
+            'color': color_weight,
             'tof': tof_weight,
             'depth': depth_weight,
-            'empty': empty_weight,
+            'empty': sparsity_weight,
             'tof_poses': self.args.pose_reg_weight,
             'color_poses': self.args.pose_reg_weight,
         }
@@ -649,7 +649,7 @@ class NeRFTrainer(object):
 
         ## Relative pose
         if self.args.use_relative_poses \
-            and not self.args.colocated_pose \
+            and not self.args.collocated_pose \
                 and not self.args.optimize_relative_pose:
 
             self.args.optimize_relative_pose = True
@@ -662,31 +662,18 @@ class NeRFTrainer(object):
     
     def eval(self):
         i_val = self.dataloader.i_val
-        split_pose = np.array(self.tof_poses[i_val])
-
-        if self.args.extrinsics_file != "":
-            temp_pose = np.load(self.args.extrinsics_file)
-            split_pose = np.tile(np.eye(4)[None], (temp_pose.shape[0], 1, 1))
-            split_pose[:, :3, :] = temp_pose[:, :3, :4]
-
-            split_pose = flip_coords(np.linalg.inv(split_pose))
-            split_pose, _ = recenter_poses(split_pose)
-
-            if self.args.reverse_extrinsics:
-                split_pose = split_pose[::-1]
-
-            i_val = [0 for i in range(split_pose.shape[0])]
+        split_pose = np.array([self.tof_poses[i] for i in i_val])
 
         split_colors = self.dataset['color_images'][i_val]
         split_tofs = self.dataset['tof_images'][i_val]
         split_depths = self.dataset['depth_images'][i_val]
         split_tof_depths = self.dataset['tof_depth_images'][i_val]
-        split_frame_numbers = list(range(len(i_val)))
+        split_frame_numbers = self.dataloader.val_frames_idx
 
         # Get outputs
         for k, image_idx in enumerate(split_frame_numbers):
             pose = split_pose[k]
-            print(k, pose, i_val)
+            print(k, image_idx)
 
             outputs = render(
                 H=self.image_sizes['color'][1], W=self.image_sizes['color'][0],
@@ -698,15 +685,17 @@ class NeRFTrainer(object):
             )
 
             start_idx = 0
-            eval_dir = self.args.expname + '_eval'
+            eval_dir = 'eval/' + self.args.expname
 
             os.makedirs(eval_dir, exist_ok=True)
+            os.makedirs(eval_dir + '/eval', exist_ok=True)
+            os.makedirs(eval_dir + '/eval_target', exist_ok=True)
+            os.makedirs(eval_dir + '/eval_png', exist_ok=True)
+            os.makedirs(eval_dir + '/eval_target_png', exist_ok=True)
             os.makedirs(eval_dir + '/eval_depth', exist_ok=True)
             os.makedirs(eval_dir + '/eval_target_depth', exist_ok=True)
             os.makedirs(eval_dir + '/eval_depth_png', exist_ok=True)
             os.makedirs(eval_dir + '/eval_target_depth_png', exist_ok=True)
-            os.makedirs(eval_dir + '/eval_png', exist_ok=True)
-            os.makedirs(eval_dir + '/eval_target_png', exist_ok=True)
 
             np.save(eval_dir + '/eval_depth/%04d.npy' % (k + start_idx), outputs['depth_map'])
             np.save(eval_dir + '/eval_target_depth/%04d.npy' % (k + start_idx), split_depths[k])
@@ -724,40 +713,28 @@ class NeRFTrainer(object):
                 eval_dir + '/eval_target_depth_png/%04d.png' % (k + start_idx), to8b(disps)
             )
 
-            np.save(eval_dir + '/eval/%04d.npy' % (k + start_idx), outputs['radiance_map'])
+            np.save(eval_dir + '/eval/%04d.npy' % (k + start_idx), outputs['color_map'])
             np.save(eval_dir + '/eval_target/%04d.npy' % (k + start_idx), split_colors[k])
 
             imageio.imwrite(
-                eval_dir + '/eval_png/%04d.png' % (k + start_idx), to8b(outputs['radiance_map'])
+                eval_dir + '/eval_png/%04d.png' % (k + start_idx), to8b(outputs['color_map'])
             )
             imageio.imwrite(
                 eval_dir + '/eval_target_png/%04d.png' % (k + start_idx), to8b(split_colors[k])
             )
-
-            if self.args.show_images:
-                plt.subplot(1, 2, 1)
-                plt.imshow(split_colors[k])
-                plt.subplot(1, 2, 2)
-                plt.imshow(outputs['radiance_map'])
-                plt.show()
-
-                plt.imshow(outputs['radiance_map'])
-                plt.show()
-
-                plt.imshow(np.abs(outputs['radiance_map'] - split_colors[k]))
-                plt.show()
     
     def video_logging(self, i, render_freezeframe=False):
-        if self.args.extrinsics_file != "":
-            temp_pose = np.load(self.args.extrinsics_file)
+        if self.args.render_extrinsics_file != "":
+            temp_pose = np.load(self.args.render_extrinsics_file)
             split_pose = np.tile(np.eye(4)[None], (temp_pose.shape[0], 1, 1))
             split_pose[:, :3, :] = temp_pose[:, :3, :4]
 
-            split_pose = flip_coords(np.linalg.inv(split_pose))
-            split_pose[:, :3, -1] *= self.args.extrinsics_scale
+            split_pose = np.linalg.inv(split_pose)
+
+            split_pose[:, :3, -1] *= self.args.render_extrinsics_scale
             split_pose, _ = recenter_poses(split_pose)
 
-            if self.args.reverse_extrinsics:
+            if self.args.reverse_render_extrinsics:
                 split_pose = split_pose[::-1]
 
             render_poses = split_pose
@@ -779,8 +756,8 @@ class NeRFTrainer(object):
 
         if self.args.dynamic:
             self.render_kwargs_test['outputs'] = [
-                'tof_map', 'radiance_map',
-                'tof_map_dynamic', 'radiance_map_dynamic',
+                'tof_map', 'color_map',
+                'tof_map_dynamic', 'color_map_dynamic',
                 'disp_map', 'depth_map',
                 'depth_map_dynamic', 'disp_map_dynamic',
             ]
@@ -805,7 +782,7 @@ class NeRFTrainer(object):
 
         for j in range(all_videos['depth_map'].shape[0]):
             depth = all_videos['depth_map'][j]
-            rgb = all_videos['radiance_map'][j]
+            rgb = all_videos['color_map'][j]
 
             np.save(f'{depth_base}/{j:04d}.npy', depth)
 
@@ -876,17 +853,17 @@ class NeRFTrainer(object):
                     fps=25, quality=8
                 )
         
-        if 'radiance' in self.images_to_log:
-            radiances = all_videos['radiance_map']
+        if 'color' in self.images_to_log:
+            colors = all_videos['color_map']
             imageio.mimwrite(
-                moviebase + 'radiance.mp4', to8b(radiances),
+                moviebase + 'color.mp4', to8b(colors),
                 fps=25, quality=8
             )
             
             if self.args.dynamic:
-                radiances = all_videos['radiance_map_dynamic']
+                colors = all_videos['color_map_dynamic']
                 imageio.mimwrite(
-                    moviebase + 'radiance_dynamic.mp4', to8b(radiances),
+                    moviebase + 'color_dynamic.mp4', to8b(colors),
                     fps=25, quality=8
                 )
 
@@ -909,9 +886,9 @@ class NeRFTrainer(object):
 
         if self.args.dynamic:
             self.render_kwargs_test['outputs'] = [
-                'tof_map', 'radiance_map',
+                'tof_map', 'color_map',
                 'depth_map', 'disp_map',
-                'tof_map_dynamic', 'radiance_map_dynamic',
+                'tof_map_dynamic', 'color_map_dynamic',
                 'depth_map_dynamic', 'disp_map_dynamic',
             ]
 
@@ -951,17 +928,17 @@ class NeRFTrainer(object):
                     os.path.join(testimgdir, '{:08d}_disp_dynamic.png'.format(i)), to8b(disp_dynamic)
                 )
 
-        if 'radiance' in self.images_to_log:
+        if 'color' in self.images_to_log:
             imageio.imwrite(
-                os.path.join(testimgdir, '{:08d}_color.png'.format(i)), to8b(outputs['radiance_map'])
+                os.path.join(testimgdir, '{:08d}_color.png'.format(i)), to8b(outputs['color_map'])
             )
             imageio.imwrite(
                 os.path.join(testimgdir, '{:08d}_color_gt.png'.format(i)), to8b(target_image)
             )
 
-            if 'radiance_map_dynamic' in outputs:
+            if 'color_map_dynamic' in outputs:
                 imageio.imwrite(
-                    os.path.join(testimgdir, '{:08d}_color_dynamic.png'.format(i)), to8b(outputs['radiance_map_dynamic'])
+                    os.path.join(testimgdir, '{:08d}_color_dynamic.png'.format(i)), to8b(outputs['color_map_dynamic'])
                     )
 
         tof = outputs['tof_map']
@@ -1065,11 +1042,12 @@ class NeRFTrainer(object):
 
             # Logging
             if i % self.args.i_print == 0 or i < 10:
-                print("Phase offset:", self.calib_vars['phase_offset'])
-                print("Poses:", self.color_poses[0], self.color_poses[10])
+                if self.args.print_extras:
+                    print("Phase offset:", self.calib_vars['phase_offset'])
+                    print("Poses:", self.color_poses[0], self.color_poses[10])
 
-                if self.args.use_relative_poses:
-                    print("Relative pose:", self.relative_pose)
+                    if self.args.use_relative_poses:
+                        print("Relative pose:", self.relative_pose)
 
                 print(self.expname, i, psnr, loss.numpy(), self.global_step.numpy())
                 print('iter time {:.05f}'.format(time_elapsed))

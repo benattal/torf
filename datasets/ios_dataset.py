@@ -6,7 +6,7 @@ from PIL import Image
 from datasets.tof_dataset import *
 from utils.utils import rgb2gray, resize_all_images
 
-class IOSDataset(TOFDataset):
+class IOSDataset(ToFDataset):
     def __init__(
         self,
         args,
@@ -38,9 +38,6 @@ class IOSDataset(TOFDataset):
         return depth_im
 
     def _post_process_dataset(self, args):
-        #self.dataset['color_intrinsics'][:2, :3] *= 2
-        #self.dataset['tof_intrinsics'][:2, :3] *= 2
-
         gray = rgb2gray(self.dataset['color_images'])
         gray = resize_all_images(
             gray,

@@ -7,7 +7,7 @@ from datasets.tof_dataset import *
 
 from utils.utils import rgb2gray, resize_all_images
 
-class RealDataset(TOFDataset):
+class RealDataset(ToFDataset):
     def __init__(
         self,
         args,

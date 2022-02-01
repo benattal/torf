@@ -7,8 +7,6 @@ from types import SimpleNamespace
 from utils.nerf_utils import *
 from utils.projection_utils import *
 from utils.sampling_utils import *
-from utils.shading_utils import *
-from utils.shadow_utils import *
 from utils.temporal_utils import *
 from utils.tof_utils import *
 from utils.utils import *
@@ -24,7 +22,6 @@ def convert_to_outputs_dynamic_one(
 
     # Non-linearities for time-of-flight
     tof_nl_fn = (lambda x: tf.abs(x)) if args.use_falloff else tf.math.sigmoid
-    tof_nl_fn_basis = (lambda x: x) if args.use_falloff else tf.math.tanh
 
     # Distances
     dists, dists_to_cam, dists_to_light, dists_total = \
@@ -41,9 +38,9 @@ def convert_to_outputs_dynamic_one(
     
     ## Color
 
-    if 'radiance_map' in args.outputs:
-        radiance_map = compute_color(0, raw, weights, args, no_over=True)
-        outputs['radiance_map'] = radiance_map
+    if 'color_map' in args.outputs:
+        color_map = compute_color(0, raw, weights, args, no_over=True)
+        outputs['color_map'] = color_map
 
     ## Time-of-flight
 
@@ -99,24 +96,24 @@ def convert_to_outputs_dynamic(
     )
     weights_blended = alpha_blended * transmittance_blended
 
-    if 'radiance_map' in args.outputs:
-        radiance_blended = linear_blend(
-            outputs_static['radiance_map'] * alpha_static, outputs_dynamic['radiance_map'] * alpha_dynamic, blend_weight
+    if 'color_map' in args.outputs:
+        color_blended = linear_blend(
+            outputs_static['color_map'] * alpha_static, outputs_dynamic['color_map'] * alpha_dynamic, blend_weight
             )
 
-        radiance_map = tf.reduce_sum(
-            transmittance_blended * radiance_blended,
+        color_map = tf.reduce_sum(
+            transmittance_blended * color_blended,
             axis=-2
             ) 
 
-        outputs['radiance_map'] = radiance_map
+        outputs['color_map'] = color_map
 
     if 'tof_map' in args.outputs:
         tof_blended = linear_blend(
             outputs_static['tof_map'] * alpha_static, outputs_dynamic['tof_map'] * alpha_dynamic, blend_weight
             )
 
-        if args.double_transmittance:
+        if args.square_transmittance:
             tof_map = tf.reduce_sum(
                 transmittance_blended * transmittance_blended * tof_blended,
                 axis=-2
@@ -145,15 +142,15 @@ def convert_to_outputs_dynamic(
     )
     weights_dynamic = alpha_dynamic * transmittance_dynamic
 
-    if 'radiance_map_dynamic' in args.outputs:
-        radiance_map = tf.reduce_sum(
-            weights_dynamic * outputs_dynamic['radiance_map'],
+    if 'color_map_dynamic' in args.outputs:
+        color_map = tf.reduce_sum(
+            weights_dynamic * outputs_dynamic['color_map'],
             axis=-2
             ) 
-        outputs['radiance_map_dynamic'] = radiance_map
+        outputs['color_map_dynamic'] = color_map
 
     if 'tof_map_dynamic' in args.outputs:
-        if args.double_transmittance:
+        if args.square_transmittance:
             tof_map = tf.reduce_sum(
                 transmittance_dynamic * transmittance_dynamic * outputs_dynamic['tof_map'],
                 axis=-2

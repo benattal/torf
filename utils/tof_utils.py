@@ -31,23 +31,6 @@ def same_phase(phasor, amp):
 
     return mul_phasors(phasor_real, phasor_imag, amp * inv_phasor_amp, 0)
 
-def convert_to_square_wave(
-        tof_im
-        ):
-    R = tof_im[..., -1]
-    phi = tf.math.atan2(tof_im[..., 1], tof_im[..., 0])
-
-    t1 = phi / np.pi
-
-    t2 = (phi - np.pi / 2) / np.pi
-    t2 = tf.where( t2 < 0, t2 + 2, t2 )
-    t2 = tf.where( t2 > 1, t2 - 2, t2 )
-
-    m1 = (1 - 2 * tf.abs(t1)) * R
-    m2 = (1 - 2 * tf.abs(t2)) * R
-
-    return tf.stack([m1, m2, R], axis=-1)
-
 def get_falloff(dists_to_light, args):
     # R-squared falloff
     if args.use_falloff:
@@ -72,7 +55,7 @@ def compute_tof(
     # R-squared falloff
     factor = get_falloff(dists_to_light, args)
 
-    # TOF phasor
+    # ToF phasor
     phasor_amp = tof_nl_fn(raw[..., start_idx:start_idx+1])
     phasor_phase = dists_total * (2 * np.pi / args.depth_range)
 
@@ -92,7 +75,7 @@ def compute_tof(
             ) * 2 * np.pi * (args.bias_range / args.depth_range)
         phasor_phase += bias_phase
     
-    # Full TOF phasor
+    # Full ToF phasor
     phasor_real, phasor_imag = \
         get_phasor(phasor_phase, phasor_amp)
 

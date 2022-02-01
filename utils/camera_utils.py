@@ -647,7 +647,7 @@ def gen_pipeline_mvs_list(dense_folder):
         mvs_list.append(paths)
     return mvs_list
 
-def get_extrinsics(extrinsics_file, args, default_exts=None):
+def get_extrinsics(render_extrinsics_file, args, default_exts=None):
     if args.fix_view:
         return np.stack(
             [np.eye(4) for i in range(args.total_num_views)],
@@ -662,22 +662,22 @@ def get_extrinsics(extrinsics_file, args, default_exts=None):
             )
 
     # Extrinsics
-    extrinsics_file = os.path.join(extrinsics_file)
+    render_extrinsics_file = os.path.join(render_extrinsics_file)
 
-    if os.path.exists(extrinsics_file):
-        extrinsics_data = np.load(extrinsics_file)
+    if os.path.exists(render_extrinsics_file):
+        extrinsics_data = np.load(render_extrinsics_file)
     else:
         extrinsics_data = default_exts
 
     return extrinsics_data
 
-def get_camera_params(intrinsics_file, extrinsics_file, args, default_exts=None):
+def get_camera_params(intrinsics_file, render_extrinsics_file, args, default_exts=None):
     if '.mat' in intrinsics_file:
         K = scipy.io.loadmat(intrinsics_file)['K']
     else:
         K = np.load(intrinsics_file)
 
-    return K, get_extrinsics(extrinsics_file, args, default_exts)
+    return K, get_extrinsics(render_extrinsics_file, args, default_exts)
 
 def reprojection_test(
     image,
