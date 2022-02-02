@@ -18,7 +18,7 @@ conda activate torf
 To train model on one of our sequences, run
 
 ```
-./scripts/real_fast.sh seq_color21_small 0 30
+./scripts/real.sh seq_color21_small 0 30
 ```
 
 The last two arguments specify first frame to use and the last frame to use
@@ -28,13 +28,13 @@ The last two arguments specify first frame to use and the last frame to use
 For the real and iOS sequences, run
 
 ```
-./scripts/real_fast.sh seq_color21_small 0 30
+./scripts/real.sh seq_color21_small 0 30
 ```
 
 and 
 
 ```
-./scripts/ios_fast.sh dishwasher 30
+./scripts/ios.sh dishwasher 30
 ```
 
 respectively.

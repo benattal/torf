@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import platform
+use_xla = 'Windows' in platform.system()
 import time
 
 from types import SimpleNamespace
@@ -184,7 +186,7 @@ def convert_to_outputs_dynamic(
 
     return outputs, weights_blended[..., 0]
 
-@tf.function(experimental_compile=True)
+@tf.function(experimental_compile=use_xla)
 def render_rays_dynamic(
     chunk_inputs,
     **kwargs
@@ -205,7 +207,6 @@ def render_rays_dynamic(
     far = chunk_inputs['far']
     N_rays = rays_o.shape[0]
 
-    #scale_fac = args.scene_scale / (args.far - args.near)
     scale_fac = np.array(
         [args.scene_scale_x, args.scene_scale_y, args.scene_scale],
         )[None] / (args.far - args.near)

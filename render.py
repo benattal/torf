@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import time
+import platform
+use_xla = 'Windows' in platform.system()
 
 from types import SimpleNamespace
 
@@ -70,7 +72,7 @@ def convert_to_outputs(raw, z_vals, rays_o, rays_d, pts, light_pos, near, far, v
 
     return outputs, weights
 
-@tf.function(experimental_compile=True)
+@tf.function(experimental_compile=use_xla)
 def render_rays(
     chunk_inputs,
     **kwargs

@@ -63,5 +63,3 @@ square_transmittance = True
 use_falloff = True
 use_phasor = False
 no_phase_iters = 100000000
-
-

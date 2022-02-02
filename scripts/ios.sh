@@ -1,7 +1,7 @@
-   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda  python torf.py --config config/config_ios.txt \
+   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda python torf.py --config config/config_ios.txt \
     --dataset_type ios \
     --scan $1 \
-    --expname ios_$1_$2_dynamic_fast \
+    --expname ios_$1 \
     --num_views $2 \
     --num_frames $2 \
     --tof_image_width 384 --tof_image_height 288 \
@@ -15,4 +15,5 @@
     --render_extrinsics_file data/render_poses/spiral_ios.npy \
     --reverse_render_extrinsics \
     --render_extrinsics_scale 1.1
+
 

@@ -1,7 +1,7 @@
  XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda python torf.py --config config/config_static.txt \
     --dataset_type mitsuba \
     --scan $1 \
-    --expname $1_$2_fast \
+    --expname $1_$2 \
     --num_views 16 \
     --num_frames 16 \
     --train_views $3 \

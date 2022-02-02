@@ -5,18 +5,16 @@ channels:
 dependencies:
   - python=3.8
   - pip
-  - numpy
+  - pillow=8.4.0
   - cudatoolkit=11.3
+  - scipy=1.7.1
   - pip:
     - configargparse
-    - h5py
     - imageio
     - imageio-ffmpeg
     - opencv-python
-    - openexr
-    - pillow
-    - scipy
+    - matplotlib
     - tensorflow-gpu==2.5.0
-    - tensorflow-graphics==2020.5.20
     - tensorflow_addons
     - tqdm
+

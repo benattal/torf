@@ -1,7 +1,7 @@
-   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda  python torf.py --config config/config_dino.txt \
+   XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda python torf.py --config config/config_dino.txt \
     --dataset_type mitsuba \
-    --scan dino_nowrap \
-    --expname synthetic_dino_$1_dynamic_fast \
+    --scan dino_wrap \
+    --expname dino_wrap \
     --num_views $1 \
     --num_frames $1 \
     --tof_image_width 512 --tof_image_height 512 \
@@ -15,3 +15,4 @@
     --val_start 61 --val_end 122 \
     --render_extrinsics_file data/render_poses/spiral_dino.npy \
     --render_extrinsics_scale 1.1
+
